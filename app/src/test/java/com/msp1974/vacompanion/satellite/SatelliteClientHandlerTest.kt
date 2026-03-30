@@ -160,8 +160,8 @@ class SatelliteClientHandlerTest {
         
         val payload = byteArrayOf(0, 1, 2)
         clientHandler.processPacket(WyomingPacket("audio-chunk", buildJsonObject {}, payload))
-
-        verify(timeout = 1000) { mediaHandler.voicePlayer.writeAudio(payload) }
+        
+        verify { mediaHandler.voicePlayer.writeAudio(payload) }
     }
 
     @Test
