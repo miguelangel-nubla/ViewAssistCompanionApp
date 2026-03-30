@@ -4,10 +4,9 @@ import com.example.microfeatures.MicroFrontend
 import com.msp1974.vacompanion.audio.VacaAudioFormat
 import com.msp1974.vacompanion.utils.fillFrom
 import com.msp1974.vacompanion.wakeword.WakeWordEngineProvider
-import timber.log.Timber
 import java.nio.ByteBuffer
+import kotlin.math.max
 
-private const val SAMPLES_PER_SECOND = VacaAudioFormat.SAMPLE_RATE_HZ
 private const val SAMPLES_PER_CHUNK = VacaAudioFormat.FRAME_SIZE_10MS
 private const val BYTES_PER_SAMPLE = VacaAudioFormat.BYTES_PER_SAMPLE
 private const val BYTES_PER_CHUNK = SAMPLES_PER_CHUNK * BYTES_PER_SAMPLE
@@ -17,7 +16,9 @@ class MicroWakeWordDetector(private val wakeWords: List<MicroWakeWord>) : AutoCl
     private val buffer = ByteBuffer.allocateDirect(BYTES_PER_CHUNK)
 
     fun detect(audio: ByteBuffer): List<WakeWordEngineProvider.WakeWordDetection> {
-        val detections = mutableListOf<WakeWordEngineProvider.WakeWordDetection>()
+        // One mic read spans several 10 ms frames; merge per model (the old code duplicated
+        // entries and left stale detected=true, which caused spurious wakes).
+        val aggregated = mutableMapOf<String, WakeWordEngineProvider.WakeWordDetection>()
         buffer.fillFrom(audio)
         while (buffer.flip().remaining() == BYTES_PER_CHUNK) {
             val processOutput = frontend.processSamples(buffer)
@@ -28,22 +29,24 @@ class MicroWakeWordDetector(private val wakeWords: List<MicroWakeWord>) : AutoCl
                 continue
             for (wakeWord in wakeWords) {
                 val result = wakeWord.processAudioFeatures(processOutput.features)
-
-                // Hold highest detect or highest none detect if no detection
-                if (!detections.any { it.wakeWordId == wakeWord.id } || (result.detected && detections.any { it.wakeWordId == wakeWord.id && it.score < result.score }))
-                    detections.removeIf { it.wakeWordId == wakeWord.id }
-                    detections.add(
-                        WakeWordEngineProvider.WakeWordDetection(
-                            wakeWord.id,
-                            wakeWord.wakeWord,
-                            result.detected,
-                            result.score
-                        )
-                    )
+                val prev = aggregated[wakeWord.id]
+                val mergedDetected = prev?.detected == true || result.detected
+                val mergedScore = when {
+                    result.detected && prev?.detected == true -> max(prev.score, result.score)
+                    result.detected -> result.score
+                    prev?.detected == true -> prev.score
+                    else -> result.score
+                }
+                aggregated[wakeWord.id] = WakeWordEngineProvider.WakeWordDetection(
+                    wakeWord.id,
+                    wakeWord.wakeWord,
+                    mergedDetected,
+                    mergedScore
+                )
             }
         }
         buffer.compact()
-        return detections
+        return aggregated.values.toList()
     }
 
     override fun close() {
