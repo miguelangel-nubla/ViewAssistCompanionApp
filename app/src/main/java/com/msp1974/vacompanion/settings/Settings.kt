@@ -9,8 +9,6 @@ import android.provider.Settings.Secure
 import androidx.preference.PreferenceManager
 import androidx.core.content.edit
 import com.google.android.gms.common.util.ClientLibraryUtils.getPackageInfo
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import com.msp1974.vacompanion.audio.VacaAudioFormat
 import com.msp1974.vacompanion.utils.Event
 import com.msp1974.vacompanion.utils.EventNotifier
@@ -417,7 +415,7 @@ class APPConfig(val context: Context) {
                 else -> property.name
             }
             val event = Event(eventName, oldValue, newValue)
-            Firebase.crashlytics.log("${property.name} ($eventName) changed from $oldValue to $newValue")
+            firebase.addToCrashLog("${property.name} ($eventName) changed from $oldValue to $newValue")
             eventBroadcaster.notifyEvent(event)
         }
     }
