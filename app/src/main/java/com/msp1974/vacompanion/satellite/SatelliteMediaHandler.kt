@@ -21,7 +21,7 @@ class SatelliteMediaHandler(context: Context) {
         mediaPlayer.unDuckVolume()
         alarmPlayer.stopAlarm()
         alarmPlayer.unDuckVolume()
-        voicePlayer.stop(force = false)
+        voicePlayer.release()
         effectsPlayer.release()
     }
 
