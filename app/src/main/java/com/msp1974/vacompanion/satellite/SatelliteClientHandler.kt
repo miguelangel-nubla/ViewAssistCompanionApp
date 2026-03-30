@@ -27,6 +27,9 @@ import java.net.Socket
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -49,7 +52,10 @@ class SatelliteClientHandler(
     private val sendExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "SatelliteClient-${client.port}")
     },
-    private val broadcastExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+    private val broadcastExecutor: ExecutorService = Executors.newSingleThreadExecutor(),
+    private val receiveExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "SatelliteClient-${client.port}-rx-consumer")
+    },
 ) : WyomingClient {
 
     private val connectionId = client.inetAddress.hostAddress ?: "unknown"
@@ -68,6 +74,23 @@ class SatelliteClientHandler(
     )
     @Volatile private var satelliteState = SatelliteState.STOPPED
     private val missedPongs = AtomicInteger(0)
+
+    /**
+     * Decouples TCP reads from playback: the socket thread only frames packets and enqueues them.
+     * A single consumer thread processes them in order (including AudioTrack writes), so bursty TTS
+     * does not block reading later Wyoming frames (e.g. settings) from the socket.
+     */
+    private val incomingQueue = LinkedBlockingQueue<IncomingQueueItem>()
+
+    private sealed class IncomingQueueItem {
+        data class Packet(val packet: WyomingPacket) : IncomingQueueItem()
+        data object End : IncomingQueueItem()
+    }
+
+    private val resourcesReleased = AtomicBoolean(false)
+
+    /** Set when [start] begins; counted down after the read loop stops enqueueing (incl. [IncomingQueueItem.End]). */
+    private var readLoopFinishedLatch: CountDownLatch? = null
     
     private val sessionCoordinator: SatelliteSessionCoordinator
     
@@ -179,13 +202,20 @@ class SatelliteClientHandler(
         val totalConnections = config.atomicConnectionCount.incrementAndGet()
         log.d("Client $clientId connected from $connectionId. Total connections: $totalConnections")
         startPingTimer()
-        
+
+        readLoopFinishedLatch = CountDownLatch(1)
+        receiveExecutor.execute { consumeIncomingLoop() }
+
         try {
             while (isRunning.get() && !client.isClosed) {
                 val packet = messenger.readEvent() ?: break
                 // Any successfully read packet proves the link is alive; resets ping watchdog (not pong-specific).
                 missedPongs.set(0)
-                processPacket(packet)
+                if (isImmediateHaSettingsPacket(packet)) {
+                    processIncomingPacket(packet)
+                } else {
+                    incomingQueue.put(IncomingQueueItem.Packet(packet))
+                }
             }
         } catch (_: EOFException) {
             log.d("Connection $clientId closed by peer.")
@@ -194,21 +224,35 @@ class SatelliteClientHandler(
         } catch (ex: Exception) {
             if (isRunning.get()) log.e("Connection $clientId terminated unexpectedly: $ex")
         } finally {
+            runCatching { incomingQueue.put(IncomingQueueItem.End) }
+            readLoopFinishedLatch?.countDown()
             stop()
         }
     }
 
     override fun stop() {
-        if (!isRunning.compareAndSet(true, false)) return
-        
-        log.d("Stopping client $clientId connection handler")
-        stopPingTimer()
+        val wasRunning = isRunning.getAndSet(false)
+        if (wasRunning) {
+            log.d("Stopping client $clientId connection handler")
+            stopPingTimer()
 
-        if (satelliteState == SatelliteState.RUNNING) {
-            stopSatelliteService()
+            if (satelliteState == SatelliteState.RUNNING) {
+                stopSatelliteService()
+            }
         }
-        
-        cleanupResources()
+
+        runCatching { client.shutdownInput() }
+
+        readLoopFinishedLatch?.let { latch ->
+            runCatching { latch.await(30, TimeUnit.SECONDS) }
+        }
+
+        releaseAllResources()
+
+        if (wasRunning) {
+            val remaining = config.atomicConnectionCount.decrementAndGet()
+            log.w("$connectionId:$clientId disconnected. Remaining connections: $remaining")
+        }
     }
 
     private fun startSatelliteService() {
@@ -222,7 +266,8 @@ class SatelliteClientHandler(
             if (config.pairedDeviceID.isEmpty()) config.pairedDeviceID = connectionId
             if (config.pairedDeviceID != connectionId) {
                 log.i("Unauthorized connection attempt from $connectionId:$clientId. Aborting.")
-                stop()
+                // stop() awaits the receive consumer; do not call it from the consumer thread.
+                broadcastExecutor.execute { stop() }
                 return
             }
 
@@ -273,17 +318,44 @@ class SatelliteClientHandler(
         }
     }
 
-    private fun cleanupResources() {
+    /**
+     * HA-driven device settings (diagnostics, volumes, etc.) must not wait behind a long TTS
+     * [audio-chunk] backlog in [incomingQueue]. Apply them on the reader thread as soon as they are framed.
+     */
+    private fun isImmediateHaSettingsPacket(packet: WyomingPacket): Boolean {
+        if (packet.type == "settings") return true
+        return packet.type == "custom-vaca" && packet.getProp("event_type") == "settings"
+    }
+
+    private fun consumeIncomingLoop() {
+        try {
+            while (true) {
+                when (val item = incomingQueue.take()) {
+                    IncomingQueueItem.End -> break
+                    is IncomingQueueItem.Packet -> processIncomingPacket(item.packet)
+                }
+            }
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+    }
+
+    /**
+     * Idempotent teardown (safe from [stop] re-entry or finally after an error).
+     */
+    private fun releaseAllResources() {
+        if (!resourcesReleased.compareAndSet(false, true)) return
+
+        receiveExecutor.shutdown()
+        runCatching { receiveExecutor.awaitTermination(30, TimeUnit.SECONDS) }
+
         mediaHandler.release()
         server.notifyAudioOutputPlaybackChanged(false)
         sendExecutor.shutdown()
-        runCatching { sendExecutor.awaitTermination(1, java.util.concurrent.TimeUnit.SECONDS) }
+        runCatching { sendExecutor.awaitTermination(1, TimeUnit.SECONDS) }
         broadcastExecutor.shutdown()
-        runCatching { broadcastExecutor.awaitTermination(1, java.util.concurrent.TimeUnit.SECONDS) }
+        runCatching { broadcastExecutor.awaitTermination(1, TimeUnit.SECONDS) }
         runCatching { client.close() }
-        
-        val remaining = config.atomicConnectionCount.decrementAndGet()
-        log.w("$connectionId:$clientId disconnected. Remaining connections: $remaining")
     }
 
     // endregion
@@ -291,10 +363,10 @@ class SatelliteClientHandler(
     // region Event Processing
 
     override fun processPacket(packet: WyomingPacket) {
-        if (packet.type !in listOf("ping", "pong", "audio-chunk")) {
-            log.d("Event received - $clientId: ${packet.toMap()}")
-        }
+        processIncomingPacket(packet)
+    }
 
+    private fun processIncomingPacket(packet: WyomingPacket) {
         try {
             when (packet.type) {
                 "ping" -> sendPong()

@@ -120,6 +120,11 @@ class WyomingMessenger(
             reader.readFully(payloadBytes)
             packet.payload = payloadBytes
         }
+
+        if (packet.type != "ping" && packet.type != "pong" && packet.type != "audio-chunk") {
+            log.d("Event received - $clientId: ${packet.toMap()}")
+        }
+
         return packet
     }
 }
