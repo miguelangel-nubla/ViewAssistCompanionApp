@@ -98,6 +98,7 @@ class APPConfigTest {
         val jsonSettings = """
             {
                 "wake_word_threshold": 85,
+                "stop_word_threshold": 60,
                 "bump_sensitivity": 5.0
             }
         """.trimIndent()
@@ -105,6 +106,7 @@ class APPConfigTest {
         config.processSettings(jsonSettings)
 
         assertEquals(0.85f, config.wakeWordThreshold, 0.001f)
+        assertEquals(0.6f, config.stopWordThreshold, 0.001f)
         assertEquals(0.5f, config.bumpSensitivity, 0.001f)
     }
 }

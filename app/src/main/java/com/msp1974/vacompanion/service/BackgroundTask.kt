@@ -292,7 +292,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 }
             }
-            "wakeWord", "wakeWordThreshold", "wakeWordEngine", "mic_audio_source", "audio_input_processing_mode" -> {
+            "wakeWord", "wakeWordThreshold", "stopWordThreshold", "wakeWordEngine", "mic_audio_source", "audio_input_processing_mode" -> {
                 scope.launch {
                     try {
                         if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {

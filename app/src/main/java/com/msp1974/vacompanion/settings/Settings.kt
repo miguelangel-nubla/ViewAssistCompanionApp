@@ -127,6 +127,10 @@ class APPConfig(val context: Context) {
         onValueChangedListener(property, oldValue, newValue)
     }
 
+    var stopWordThreshold: Float by Delegates.observable(DEFAULT_STOP_WORD_THRESHOLD) { property, oldValue, newValue ->
+        onValueChangedListener(property, oldValue, newValue)
+    }
+
 
     var voiceVolume: Int by Delegates.observable(DEFAULT_VOICE_VOLUME) { property, oldValue, newValue ->
         onValueChangedListener(property, oldValue, newValue)
@@ -330,6 +334,7 @@ class APPConfig(val context: Context) {
         settings["mic_on_sound"]?.jsonPrimitive?.contentOrNull?.let { micOnSound = it }
         settings["mic_off_sound"]?.jsonPrimitive?.contentOrNull?.let { micOffSound = it }
         settings["wake_word_threshold"]?.jsonPrimitive?.floatOrNull?.let { wakeWordThreshold = it / 100 }
+        settings["stop_word_threshold"]?.jsonPrimitive?.floatOrNull?.let { stopWordThreshold = it / 100 }
         settings["raw_proximity_threshold"]?.asIntOrNull()?.let { rawProximitySensorThreshold = it }
         settings["voice_volume"]?.asIntOrNull()?.let { voiceVolume = it }
         settings["media_volume"]?.asIntOrNull()?.let { mediaVolume = it }
@@ -433,6 +438,7 @@ class APPConfig(val context: Context) {
         const val DEFAULT_MIC_ON_SOUND = "havpe_mic_on"
         const val DEFAULT_MIC_OFF_SOUND = "havpe_mic_off"
         const val DEFAULT_WAKE_WORD_THRESHOLD = 0.5f
+        const val DEFAULT_STOP_WORD_THRESHOLD = 0.5f
         const val DEFAULT_VOICE_VOLUME = 10
         const val DEFAULT_MEDIA_VOLUME = 10
         const val DEFAULT_ALARM_VOLUME = 10

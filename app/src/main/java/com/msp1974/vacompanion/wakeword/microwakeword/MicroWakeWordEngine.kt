@@ -125,7 +125,7 @@ open class MicroWakeWordEngine (
         stopWords: List<String>
     ) = MicroWakeWordDetector(
         loadWakeWords(wakeWords, _availableWakeWords, config.wakeWordThreshold) +
-                loadWakeWords(stopWords, _availableStopWords)
+                loadWakeWords(stopWords, _availableStopWords, config.stopWordThreshold)
     )
 
     private suspend fun loadWakeWords(
