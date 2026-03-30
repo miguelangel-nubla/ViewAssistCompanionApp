@@ -30,6 +30,7 @@ fun DiagnosticBar(
     diagnosticInfo: DiagnosticInfo,
     modifier: Modifier = Modifier,
 ) {
+    val gaugeSize = 120.dp
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -41,28 +42,47 @@ fun DiagnosticBar(
                 // Prevent propagation of click
             }
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .padding(top = 8.dp)
+                .padding(vertical = 8.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            InfoGauge(
-                indicatorValue = (diagnosticInfo.audioLevel).toInt(),
-                maxIndicatorValue = 100,
-                smallText = "Mic Level",
-                foregroundIndicatorColor = CustomColours.GREEN
-            )
-            if (diagnosticInfo.wakeWord != "none") {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 InfoGauge(
-                    indicatorValue = (diagnosticInfo.detectionLevel).toInt(),
+                    canvasSize = gaugeSize,
+                    indicatorValue = (diagnosticInfo.audioLevel).toInt(),
                     maxIndicatorValue = 100,
-                    smallText = "Detection",
-                    foregroundIndicatorColor = if (diagnosticInfo.detectionLevel >= diagnosticInfo.detectionThreshold) CustomColours.GREEN else CustomColours.AMBER
+                    smallText = "Mic Level",
+                    foregroundIndicatorColor = CustomColours.GREEN
                 )
+                if (diagnosticInfo.wakeWord != "none") {
+                    InfoGauge(
+                        canvasSize = gaugeSize,
+                        indicatorValue = (diagnosticInfo.wakeWordDetectionLevel).toInt(),
+                        maxIndicatorValue = 100,
+                        smallText = "Wake word",
+                        foregroundIndicatorColor = if (diagnosticInfo.wakeWordDetectionLevel >= diagnosticInfo.wakeWordThreshold) CustomColours.GREEN else CustomColours.AMBER
+                    )
+                }
+                if (diagnosticInfo.wakeWord != "none" && diagnosticInfo.engine == "microwakeword") {
+                    InfoGauge(
+                        canvasSize = gaugeSize,
+                        indicatorValue = (diagnosticInfo.stopWordDetectionLevel).toInt(),
+                        maxIndicatorValue = 100,
+                        smallText = "Stop word",
+                        foregroundIndicatorColor = if (diagnosticInfo.stopWordDetectionLevel >= diagnosticInfo.stopWordThreshold) CustomColours.GREEN else CustomColours.AMBER
+                    )
+                }
             }
-            Column() {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 AssistChip(
                     onClick = {},
                     label = { Text(if (diagnosticInfo.engine != "") diagnosticInfo.engine else "DISABLED") },
@@ -103,8 +123,11 @@ fun DiagnosticBarPreview() {
         modifier = Modifier.background(Color.White),
         diagnosticInfo = DiagnosticInfo(
             audioLevel = 50f,
-            detectionLevel = 80f,
-            detectionThreshold = 50f,
+            engine = "microwakeword",
+            wakeWordDetectionLevel = 80f,
+            wakeWordThreshold = 50f,
+            stopWordDetectionLevel = 70f,
+            stopWordThreshold = 50f,
             vadDetection = true
         )
     )

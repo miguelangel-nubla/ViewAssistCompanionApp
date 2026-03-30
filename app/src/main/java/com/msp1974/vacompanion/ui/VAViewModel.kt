@@ -312,8 +312,10 @@ data class DiagnosticInfo(
     var show: Boolean = false,
     var engine: String = "",
     var audioLevel: Float = 0f,
-    var detectionThreshold: Float = 0f,
-    var detectionLevel: Float = 0f,
+    var wakeWordThreshold: Float = 0f,
+    var wakeWordDetectionLevel: Float = 0f,
+    var stopWordThreshold: Float = 0f,
+    var stopWordDetectionLevel: Float = 0f,
     var mode: AudioRouteOption = AudioRouteOption.NONE,
     var wakeWord: String = "",
     var vadDetection: Boolean = false

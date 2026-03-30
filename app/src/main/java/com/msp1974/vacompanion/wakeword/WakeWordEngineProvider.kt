@@ -10,6 +10,8 @@ abstract class WakeWordEngineProvider {
         data class EngineStatus(val status: String): AudioResult()
         data class Audio(val audio: ByteString, val timestamp: Long = System.currentTimeMillis()) : AudioResult()
         data class AudioLevel(val level: Float): AudioResult()
+        data class WakeWordLiveScore(val score: Float) : AudioResult()
+        data class StopWordLiveScore(val score: Float) : AudioResult()
         data class WakeDetected(val detection: WakeWordDetection) : AudioResult()
         data class StopDetected(val detection: WakeWordDetection) : AudioResult()
     }

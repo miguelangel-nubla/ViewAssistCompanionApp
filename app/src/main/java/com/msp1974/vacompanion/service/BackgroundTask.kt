@@ -97,8 +97,8 @@ internal class BackgroundTaskController (private val context: Context): EventLis
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
     private var wakeWordJob: Job? = null
-    private var holdDetectionLevelJob: Job? = null
     private var lastWakeWordDetectionScore = 0f
+    private var lastStopWordDetectionScore = 0f
 
     private var wifiLock: WifiManager.WifiLock? = null
 
@@ -199,6 +199,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 if (audioRoute == AudioRouteOption.STREAM) {
                     audioRoute = AudioRouteOption.PROCESS_NO_DETECT
                     lastWakeWordDetectionScore = 0f
+                    lastStopWordDetectionScore = 0f
 
                     scope.launch {
                         delay(2000)
@@ -469,13 +470,14 @@ internal class BackgroundTaskController (private val context: Context): EventLis
             engine?.setActiveWakeWords(listOf(config.wakeWord))
             engine?.setActiveStopWords(listOf("stop"))
 
+            lastWakeWordDetectionScore = 0f
+            lastStopWordDetectionScore = 0f
             sendDiagnostics(0f, 0f)
             warmUpAudioResources()
 
             engine!!.start().collect {
                 when (it) {
                     is WakeWordEngineProvider.AudioResult.WakeDetected -> {
-                        holdLastDetectionLevel(it.detection.score)
                         val now = System.currentTimeMillis()
                         val lastDetection = detectionCooldowns[it.detection.wakeWordId]
 
@@ -524,9 +526,19 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                         }
                     }
 
+                    is WakeWordEngineProvider.AudioResult.WakeWordLiveScore -> {
+                        if (config.diagnosticsEnabled) {
+                            lastWakeWordDetectionScore = it.score
+                        }
+                    }
+                    is WakeWordEngineProvider.AudioResult.StopWordLiveScore -> {
+                        if (config.diagnosticsEnabled) {
+                            lastStopWordDetectionScore = it.score
+                        }
+                    }
                     is WakeWordEngineProvider.AudioResult.AudioLevel -> {
                         if (config.diagnosticsEnabled) {
-                            sendDiagnostics(it.level, lastWakeWordDetectionScore)
+                            sendDiagnostics(it.level, lastWakeWordDetectionScore, lastStopWordDetectionScore)
                         }
                     }
                     is WakeWordEngineProvider.AudioResult.EngineStatus -> {
@@ -548,6 +560,8 @@ internal class BackgroundTaskController (private val context: Context): EventLis
         engine = null
         engineStarted = false
         audioRoute = AudioRouteOption.NONE
+        lastWakeWordDetectionScore = 0f
+        lastStopWordDetectionScore = 0f
         sendDiagnostics(0f, 0f)
         sendAudioInputDiagnosticsStatus()
         Timber.d("Wake word detection terminated")
@@ -588,34 +602,19 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 Timber.e("Error playing wake word sound: ${e.message.toString()}")
             }
         }
-        holdLastDetectionLevel(detection.score)
         BroadcastSender.sendBroadcast(context, BroadcastSender.WAKE_WORD_DETECTED)
     }
 
-    private fun holdLastDetectionLevel(detectionLevel: Float, duration: Long = 2000) {
-        if (detectionLevel > lastWakeWordDetectionScore) {
-            lastWakeWordDetectionScore = detectionLevel
-            if (holdDetectionLevelJob != null && holdDetectionLevelJob!!.isActive) {
-                holdDetectionLevelJob?.cancel()
-            }
-            holdDetectionLevelJob = scope.launch {
-                delay(duration)
-                if (audioRoute == AudioRouteOption.DETECT) {
-                    lastWakeWordDetectionScore = 0f
-                }
-            }
-        }
-    }
-
-
-    fun sendDiagnostics(audioLevel: Float, detectionLevel: Float) {
+    fun sendDiagnostics(audioLevel: Float, wakeWordDetectionLevel: Float, stopWordDetectionLevel: Float = 0f) {
         if (config.diagnosticsEnabled) {
             val data = DiagnosticInfo(
                 show = config.diagnosticsEnabled,
                 engine = config.wakeWordEngine,
                 audioLevel = audioLevel * 150,
-                detectionLevel = detectionLevel * 100,
-                detectionThreshold = config.wakeWordThreshold * 100,
+                wakeWordDetectionLevel = wakeWordDetectionLevel * 100,
+                wakeWordThreshold = config.wakeWordThreshold * 100,
+                stopWordDetectionLevel = stopWordDetectionLevel * 100,
+                stopWordThreshold = config.stopWordThreshold * 100,
                 wakeWord = config.wakeWord,
                 mode = if (engine == null || !engineStarted || engine!!.isMuted()) AudioRouteOption.NONE else if (engine!!.isStreaming()) AudioRouteOption.STREAM else AudioRouteOption.DETECT
             )

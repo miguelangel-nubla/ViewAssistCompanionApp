@@ -18,6 +18,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
 import kotlin.math.abs
+import kotlin.math.max
 
 
 /**
@@ -157,7 +158,11 @@ class OpenWakeWordEngine(
 
                     if (audio.isNotEmpty()) {
 
+                        val (detections, maxRawWakeScore) = processAudio(audio, frameTimestamp)
+
                         if (config.diagnosticsEnabled) {
+                            emit(AudioResult.WakeWordLiveScore(maxRawWakeScore))
+                            emit(AudioResult.StopWordLiveScore(0f))
                             emit(AudioResult.AudioLevel(microphoneInput.currentRms))
                         }
 
@@ -165,7 +170,6 @@ class OpenWakeWordEngine(
                         val a = AudioDSP().floatArrayToByteBuffer(audio)
                         emit(AudioResult.Audio(ByteString.copyFrom(a), timestamp = frameTimestamp))
 
-                        val detections = processAudio(audio, frameTimestamp)
                         for (detection in detections) {
                             if (detection.detected) {
                                 emit(AudioResult.WakeDetected(detection))
@@ -182,14 +186,19 @@ class OpenWakeWordEngine(
     }
 
     @SuppressLint("DefaultLocale")
-    fun processAudio(audioBuffer: FloatArray, timestamp: Long = System.currentTimeMillis()): List<WakeWordDetection> {
-        val detections = mutableListOf<WakeWordDetection>()
+    fun processAudio(
+        audioBuffer: FloatArray,
+        timestamp: Long = System.currentTimeMillis()
+    ): Pair<List<WakeWordEngineProvider.WakeWordDetection>, Float> {
+        val detections = mutableListOf<WakeWordEngineProvider.WakeWordDetection>()
+        var maxRawWakeScore = 0f
 
         if (isEnabled) {
             val audioFeatures = _audioProcessor.getAudioFeatures(audioBuffer)
-            modelProcessors.map { (model, processor) ->
+            modelProcessors.forEach { (model, processor) ->
                 try {
                     val score = processor.process(audioFeatures)
+                    maxRawWakeScore = max(maxRawWakeScore, score)
                     if (score > model.threshold) {
                         Timber.d(
                             "DETECTION! ${model.name} - Score: ${
@@ -197,7 +206,7 @@ class OpenWakeWordEngine(
                             } > Threshold: ${String.format("%.5f", model.threshold)}"
                         )
                         detections.add(
-                            WakeWordDetection(
+                            WakeWordEngineProvider.WakeWordDetection(
                                 model.name,
                                 model.name,
                                 isWakeWordDetected(model, score),
@@ -212,7 +221,7 @@ class OpenWakeWordEngine(
                 }
             }
         }
-        return detections
+        return Pair(detections, maxRawWakeScore)
     }
 
     private fun isWakeWordDetected(model: WakeWordModel, probability: Float): Boolean {

@@ -116,6 +116,14 @@ open class WakeWordEngine(val context: Context, val engine: WakeWordEngineModel)
                             emit(it)
                         }
 
+                        is WakeWordEngineProvider.AudioResult.WakeWordLiveScore -> {
+                            emit(it)
+                        }
+
+                        is WakeWordEngineProvider.AudioResult.StopWordLiveScore -> {
+                            emit(it)
+                        }
+
                         is WakeWordEngineProvider.AudioResult.EngineStatus -> {
                             emit(it)
                         }

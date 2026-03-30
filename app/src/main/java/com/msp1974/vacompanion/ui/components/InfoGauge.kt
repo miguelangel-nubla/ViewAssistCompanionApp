@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -61,6 +62,15 @@ fun InfoGauge(
         animatedIndicatorValue = allowedIndicatorValue.toFloat()
     }
 
+    var peakValue by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(allowedIndicatorValue) {
+        if (allowedIndicatorValue > peakValue) {
+            peakValue = allowedIndicatorValue.toFloat()
+        }
+        delay(2000)
+        peakValue = allowedIndicatorValue.toFloat()
+    }
+
     val percentage =
         (animatedIndicatorValue / maxIndicatorValue) * 100
 
@@ -92,6 +102,13 @@ fun InfoGauge(
                     indicatorColor = foregroundIndicatorColor,
                     indicatorStrokeWidth = indicatorStrokeWidth,
 //                    indicatorStokeCap = indicatorStrokeCap
+                )
+                peakIndicator(
+                    peakValue = peakValue,
+                    maxIndicatorValue = maxIndicatorValue,
+                    componentSize = componentSize,
+                    indicatorColor = Color.White,
+                    indicatorStrokeWidth = indicatorStrokeWidth
                 )
             },
         verticalArrangement = Arrangement.Center,
@@ -156,6 +173,32 @@ fun DrawScope.foregroundIndicator(
     )
 }
 
+fun DrawScope.peakIndicator(
+    peakValue: Float,
+    maxIndicatorValue: Int,
+    componentSize: Size,
+    indicatorColor: Color,
+    indicatorStrokeWidth: Float,
+) {
+    val peakPercentage = (peakValue / maxIndicatorValue) * 100
+    val peakSweepAngle = (2.4 * peakPercentage).toFloat()
+    drawArc(
+        size = Size(componentSize.width, componentSize.height * 1.2f),
+        color = indicatorColor,
+        startAngle = 150f + peakSweepAngle - 2f,
+        sweepAngle = 4f,
+        useCenter = false,
+        style = Stroke(
+            width = indicatorStrokeWidth,
+            cap = StrokeCap.Butt
+        ),
+        topLeft = Offset(
+            x = (size.width - componentSize.width) / 2f,
+            y = (size.height - componentSize.height) / 2f
+        )
+    )
+}
+
 @Composable
 fun EmbeddedElements(
     bigText: Int,
@@ -188,6 +231,6 @@ fun InfoGaugePreview() {
     InfoGauge(
         indicatorValue = 50,
         maxIndicatorValue = 100,
-        smallText = "Detection",
+        smallText = "Wake word",
     )
 }

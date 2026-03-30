@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.yield
 import timber.log.Timber
 import kotlin.collections.plus
+import kotlin.math.max
 
 open class MicroWakeWordEngine (
     val context: Context,
@@ -86,10 +87,6 @@ open class MicroWakeWordEngine (
                     val audio = microphoneInput.readBytes()
                     val frameTimestamp = System.currentTimeMillis()
 
-                    if (config.diagnosticsEnabled) {
-                        emit(AudioResult.AudioLevel(microphoneInput.currentRms))
-                    }
-
                     // Emit audio result even if not streaming so that the controller can maintain a rolling history buffer
                     emit(AudioResult.Audio(ByteString.copyFrom(audio), timestamp = frameTimestamp))
                     audio.rewind()
@@ -97,6 +94,17 @@ open class MicroWakeWordEngine (
                     // Always run audio through the models, even if not currently streaming, to keep
                     // their internal state up to date
                     val detections = detector.detect(audio)
+                    if (config.diagnosticsEnabled) {
+                        var wakeLive = 0f
+                        var stopLive = 0f
+                        for (d in detections) {
+                            if (d.wakeWordId in wakeWords) wakeLive = max(wakeLive, d.score)
+                            if (d.wakeWordId in stopWords) stopLive = max(stopLive, d.score)
+                        }
+                        emit(AudioResult.WakeWordLiveScore(wakeLive))
+                        emit(AudioResult.StopWordLiveScore(stopLive))
+                        emit(AudioResult.AudioLevel(microphoneInput.currentRms))
+                    }
                     for (detection in detections) {
                         if (detection.detected) {
                             if (detection.wakeWordId in wakeWords) {
