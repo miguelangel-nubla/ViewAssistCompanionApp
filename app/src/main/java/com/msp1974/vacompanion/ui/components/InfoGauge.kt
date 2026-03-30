@@ -186,8 +186,8 @@ fun EmbeddedElements(
 @Preview(showBackground = true)
 fun InfoGaugePreview() {
     InfoGauge(
-        indicatorValue = 5,
-        maxIndicatorValue = 10,
+        indicatorValue = 50,
+        maxIndicatorValue = 100,
         smallText = "Detection",
     )
 }

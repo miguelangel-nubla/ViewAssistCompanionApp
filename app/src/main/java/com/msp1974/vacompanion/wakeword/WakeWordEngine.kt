@@ -101,13 +101,7 @@ open class WakeWordEngine(val context: Context, val engine: WakeWordEngineModel)
                 engineInstance!!.start()!!.collect {
                     when (it) {
                         is WakeWordEngineProvider.AudioResult.WakeDetected -> {
-                            val detectInfo = WakeWordEngineProvider.WakeWordDetection(
-                                it.detection.wakeWordId,
-                                it.detection.wakeWord,
-                                it.detection.score >= config.wakeWordThreshold,
-                                it.detection.score
-                            )
-                            emit(WakeWordEngineProvider.AudioResult.WakeDetected(detectInfo))
+                            emit(it)
                         }
 
                         is WakeWordEngineProvider.AudioResult.StopDetected -> {

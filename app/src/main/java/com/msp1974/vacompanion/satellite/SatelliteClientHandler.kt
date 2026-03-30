@@ -10,6 +10,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.msp1974.vacompanion.broadcasts.BroadcastSender
 import com.msp1974.vacompanion.settings.APPConfig
 import com.msp1974.vacompanion.utils.DeviceCapabilitiesManager
+import com.msp1974.vacompanion.wakeword.microwakeword.MicroWakeWordAuthorDefaults
 import com.msp1974.vacompanion.utils.Event
 import com.msp1974.vacompanion.utils.Logger
 import com.msp1974.vacompanion.wyoming.WyomingPipelineStage
@@ -468,8 +469,17 @@ class SatelliteClientHandler(
     override fun sendSetting(name: String, value: Any) = sendSettingChange(name, value)
 
     fun sendCapabilities() {
-        val data = DeviceCapabilitiesManager.toJson(server.getDeviceInfo())
-        sendCustomVacaEvent("capabilities", data)
+        val deviceRoot = DeviceCapabilitiesManager.toJson(server.getDeviceInfo())
+        val innerCaps = deviceRoot["capabilities"]?.jsonObject ?: buildJsonObject { }
+        val authorDefaults = MicroWakeWordAuthorDefaults.buildJsonObject(context.assets)
+        val mergedCaps = buildJsonObject {
+            innerCaps.forEach { (k, v) -> put(k, v) }
+            put(MicroWakeWordAuthorDefaults.CAPABILITIES_KEY, authorDefaults)
+        }
+        sendCustomVacaEvent(
+            "capabilities",
+            buildJsonObject { put("capabilities", mergedCaps) },
+        )
     }
 
     fun sendSettingChange(name: String, value: Any) {

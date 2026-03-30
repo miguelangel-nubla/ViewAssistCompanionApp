@@ -98,7 +98,7 @@ open class MicroWakeWordEngine (
                     // their internal state up to date
                     val detections = detector.detect(audio)
                     for (detection in detections) {
-                        if (detection.score > 0.1f) {
+                        if (detection.detected) {
                             if (detection.wakeWordId in wakeWords) {
                                 emit(AudioResult.WakeDetected(detection.copy(timestamp = frameTimestamp)))
                             } else if (detection.wakeWordId in stopWords) {
@@ -124,18 +124,23 @@ open class MicroWakeWordEngine (
         wakeWords: List<String>,
         stopWords: List<String>
     ) = MicroWakeWordDetector(
-        loadWakeWords(wakeWords, _availableWakeWords) +
+        loadWakeWords(wakeWords, _availableWakeWords, config.wakeWordThreshold) +
                 loadWakeWords(stopWords, _availableStopWords)
     )
 
     private suspend fun loadWakeWords(
         ids: List<String>,
-        wakeWords: Map<String, WakeWordWithId>
+        wakeWords: Map<String, WakeWordWithId>,
+        probabilityCutoff: Float? = null
     ): List<MicroWakeWord> = buildList {
         for (id in ids) {
             wakeWords[id]?.let { wakeWord ->
                 runCatching {
-                    add(MicroWakeWord.fromWakeWord(wakeWord))
+                    if (probabilityCutoff != null) {
+                        add(MicroWakeWord.fromWakeWord(wakeWord, probabilityCutoff))
+                    } else {
+                        add(MicroWakeWord.fromWakeWord(wakeWord))
+                    }
                 }.onFailure {
                     Timber.e(it, "Error loading wake word: $id")
                 }

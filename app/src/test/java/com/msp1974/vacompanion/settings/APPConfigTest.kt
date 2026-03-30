@@ -97,7 +97,7 @@ class APPConfigTest {
     fun `test processSettings updates specific float fields properly`() {
         val jsonSettings = """
             {
-                "wake_word_threshold": 8.5,
+                "wake_word_threshold": 85,
                 "bump_sensitivity": 5.0
             }
         """.trimIndent()

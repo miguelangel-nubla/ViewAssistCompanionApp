@@ -71,11 +71,11 @@ class MicroWakeWord(
     }
 
     companion object {
-        suspend fun fromWakeWord(wakeWord: WakeWordWithId): MicroWakeWord = MicroWakeWord(
+        suspend fun fromWakeWord(wakeWord: WakeWordWithId, probabilityCutoff: Float = wakeWord.wakeWord.micro.probability_cutoff): MicroWakeWord = MicroWakeWord(
             id = wakeWord.id,
             wakeWord = wakeWord.wakeWord.wake_word,
             model = wakeWord.load(),
-            probabilityCutoff = wakeWord.wakeWord.micro.probability_cutoff,
+            probabilityCutoff = probabilityCutoff,
             slidingWindowSize = wakeWord.wakeWord.micro.sliding_window_size
         )
     }

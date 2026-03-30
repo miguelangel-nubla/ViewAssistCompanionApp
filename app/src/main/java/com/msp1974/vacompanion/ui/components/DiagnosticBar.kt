@@ -57,7 +57,7 @@ fun DiagnosticBar(
             if (diagnosticInfo.wakeWord != "none") {
                 InfoGauge(
                     indicatorValue = (diagnosticInfo.detectionLevel).toInt(),
-                    maxIndicatorValue = 10,
+                    maxIndicatorValue = 100,
                     smallText = "Detection",
                     foregroundIndicatorColor = if (diagnosticInfo.detectionLevel >= diagnosticInfo.detectionThreshold) CustomColours.GREEN else CustomColours.AMBER
                 )
@@ -103,8 +103,8 @@ fun DiagnosticBarPreview() {
         modifier = Modifier.background(Color.White),
         diagnosticInfo = DiagnosticInfo(
             audioLevel = 50f,
-            detectionLevel = 8f,
-            detectionThreshold = 5f,
+            detectionLevel = 80f,
+            detectionThreshold = 50f,
             vadDetection = true
         )
     )

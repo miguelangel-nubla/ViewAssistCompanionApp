@@ -476,15 +476,13 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 when (it) {
                     is WakeWordEngineProvider.AudioResult.WakeDetected -> {
                         holdLastDetectionLevel(it.detection.score)
-                        if (it.detection.score >= config.wakeWordThreshold) {
-                            val now = System.currentTimeMillis()
-                            val lastDetection = detectionCooldowns[it.detection.wakeWordId]
+                        val now = System.currentTimeMillis()
+                        val lastDetection = detectionCooldowns[it.detection.wakeWordId]
 
-                            if (lastDetection == null || detectionCooldownMs == 0L || now - lastDetection >= detectionCooldownMs) {
-                                Timber.i("Wake word detected: ${it.detection.wakeWord}")
-                                wakeWordDetected(it.detection, engine!!.isStreaming())
-                                detectionCooldowns[it.detection.wakeWordId] = now
-                            }
+                        if (lastDetection == null || detectionCooldownMs == 0L || now - lastDetection >= detectionCooldownMs) {
+                            Timber.i("Wake word detected: ${it.detection.wakeWord}")
+                            wakeWordDetected(it.detection, engine!!.isStreaming())
+                            detectionCooldowns[it.detection.wakeWordId] = now
                         }
                     }
 
@@ -616,8 +614,8 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 show = config.diagnosticsEnabled,
                 engine = config.wakeWordEngine,
                 audioLevel = audioLevel * 150,
-                detectionLevel = detectionLevel * 10,
-                detectionThreshold = config.wakeWordThreshold * 10,
+                detectionLevel = detectionLevel * 100,
+                detectionThreshold = config.wakeWordThreshold * 100,
                 wakeWord = config.wakeWord,
                 mode = if (engine == null || !engineStarted || engine!!.isMuted()) AudioRouteOption.NONE else if (engine!!.isStreaming()) AudioRouteOption.STREAM else AudioRouteOption.DETECT
             )
