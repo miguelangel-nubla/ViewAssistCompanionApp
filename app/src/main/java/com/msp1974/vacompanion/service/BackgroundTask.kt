@@ -240,7 +240,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
     override fun onEventTriggered(event: Event) {
         var consumed = true
         when (event.eventName) {
-            "micMuted" -> {
+            "mic_muted" -> {
                 try {
                     val micMuted = event.newValue as Boolean
                     engine?.setMuted(micMuted)
@@ -276,7 +276,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
             "voice_volume", "media_volume", "media_player_gain", "alarm_volume", "do_not_disturb" -> {
                 deviceSyncManager.onSettingChange(event.eventName, event.newValue)
             }
-            "continueConversationStart" -> {
+            "continue_conversation_start" -> {
                 if (config.wakeWordSound != "none") {
                     try {
                         val resId = context.resources.getIdentifier(
@@ -292,7 +292,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 }
             }
-            "wakeWord", "wakeWordThreshold", "stopWordThreshold", "wakeWordEngine", "mic_audio_source", "audio_input_processing_mode" -> {
+            "wake_word", "wake_word_threshold", "stop_word_threshold", "wake_word_engine", "mic_audio_source", "audio_input_processing_mode" -> {
                 scope.launch {
                     try {
                         if (androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -309,7 +309,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 }
             }
-            "wakeWordSound", "processingSound", "errorSound", "stopWordSound", "micOnSound", "micOffSound" -> {
+            "wake_word_sound", "processing_sound", "error_sound", "stop_word_sound", "mic_on_sound", "mic_off_sound" -> {
                 scope.launch {
                     try {
                         warmUpAudioResources()
@@ -318,7 +318,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 }
             }
-            "wakeWordTrigger" -> {
+            "wake_word_trigger" -> {
                 wakeWordDetected(WakeWordEngineProvider.WakeWordDetection(
                     wakeWordId =  config.wakeWord,
                     wakeWord = config.wakeWord,
@@ -329,10 +329,10 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 false
                 )
             }
-            "recognitionError" -> {
+            "recognition_error" -> {
                 val errorText = event.oldValue as? String ?: ""
                 if (errorText.isNotEmpty()) {
-                    config.eventBroadcaster.notifyEvent(Event("showToastError", "", errorText))
+                    config.eventBroadcaster.notifyEvent(Event("show_toast_error", "", errorText))
                 }
 
                 if (config.errorSound != "none") {
@@ -349,17 +349,17 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 sendDiagnostics(0f, 0f)
                 sendAudioInputDiagnosticsStatus()
             }
-            "screenSaver" -> {
+            "screen_saver" -> {
                 server.sendSetting("screen_saver", event.newValue)
             }
-            "restartZeroconf" -> {
+            "restart_zeroconf" -> {
                 zeroConf.unregisterService()
                 scope.launch {
                     delay(2000)
                     zeroConf.registerService(config.serverPort)
                 }
             }
-            "pairedDeviceID" -> {
+            "paired_device_id" -> {
                 if (config.pairedDeviceID != "") {
                     Timber.d("Device paired, stopping Zeroconf")
                     zeroConf.unregisterService()
@@ -368,7 +368,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     zeroConf.registerService(config.serverPort)
                 }
             }
-            "currentPath" -> {
+            "current_path" -> {
                 server.sendStatus(
                     buildJsonObject {
                         putJsonObject("sensors", {
@@ -377,7 +377,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 )
             }
-            "screenOn" -> {
+            "screen_on" -> {
                 val state = event.newValue as Boolean
                 server.sendStatus(
                     buildJsonObject {
@@ -387,7 +387,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 )
             }
-            "enableMotionDetection" -> {
+            "enable_motion_detection" -> {
                 val state = event.newValue as Boolean
                 if (state) {
                     motionTask.startCamera()
@@ -395,7 +395,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     motionTask.stopCamera()
                 }
             }
-            "lastMotion" -> {
+            "last_motion" -> {
                 server.sendStatus(
                     buildJsonObject {
                         putJsonObject("sensors", {
@@ -405,7 +405,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 )
             }
-            "lastActivity" -> {
+            "last_activity" -> {
                 server.sendStatus(
                     buildJsonObject {
                         putJsonObject("sensors", {
@@ -414,7 +414,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                     }
                 )
             }
-            "motionDetectionSensitivity" -> {
+            "motion_detection_sensitivity" -> {
                 motionTask.setSensitivity(event.newValue as Int)
             }
             else -> consumed = false
@@ -572,7 +572,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
         )
         // if wake up on ww, send event
         if (config.screenOnWakeWord) {
-            config.eventBroadcaster.notifyEvent(Event("screenWake", "", ""))
+            config.eventBroadcaster.notifyEvent(Event("screen_wake", "", ""))
         }
 
         if (config.wakeWordSound != "none") {
@@ -619,7 +619,7 @@ internal class BackgroundTaskController (private val context: Context): EventLis
                 wakeWord = config.wakeWord,
                 mode = if (engine == null || !engineStarted || engine!!.isMuted()) AudioRouteOption.NONE else if (engine!!.isStreaming()) AudioRouteOption.STREAM else AudioRouteOption.DETECT
             )
-            val event = Event("diagnosticStats", "", data)
+            val event = Event("diagnostic_stats", "", data)
             config.eventBroadcaster.notifyEvent(event)
         }
     }

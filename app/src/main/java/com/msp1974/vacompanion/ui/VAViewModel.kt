@@ -93,29 +93,29 @@ class VAViewModel: ViewModel(), EventListener {
     override fun onEventTriggered(event: Event) {
         var consumed = true
         when (event.eventName) {
-            "pairedDeviceID" -> buildAppInfo()
-            "darkMode" -> {
+            "paired_device_id" -> buildAppInfo()
+            "dark_mode" -> {
                 _vacaState.update { currentState ->
                     currentState.copy(
                         darkMode = event.newValue as Boolean
                     )
                 }
             }
-            "swipeRefresh" -> {
+            "swipe_refresh" -> {
                 _vacaState.update { currentState ->
                     currentState.copy(
                         swipeRefreshEnabled = event.newValue as Boolean
                     )
                 }
             }
-            "doNotDisturb" -> {
+            "do_not_disturb" -> {
                 _vacaState.update { currentState ->
                     currentState.copy(
                         isDND = event.newValue as Boolean
                     )
                 }
             }
-            "diagnosticsEnabled" -> {
+            "diagnostics_enabled" -> {
                 _vacaState.update { currentState ->
                     currentState.copy(
                         diagnosticInfo = _vacaState.value.diagnosticInfo.copy(
@@ -124,7 +124,7 @@ class VAViewModel: ViewModel(), EventListener {
                     )
                 }
             }
-            "diagnosticStats" -> {
+            "diagnostic_stats" -> {
                 val data = event.newValue as DiagnosticInfo
                 consumed = false  //Do not log event as very numerous
 
@@ -258,7 +258,7 @@ class VAViewModel: ViewModel(), EventListener {
         config!!.accessToken = ""
         config!!.refreshToken = ""
         config!!.tokenExpiry = 0
-        config!!.eventBroadcaster.notifyEvent(Event("clearWebViewStorage", "", ""))
+        config!!.eventBroadcaster.notifyEvent(Event("clear_web_view_storage", "", ""))
     }
 
     fun showUUIDChangeDialog(show: Boolean = true) {
@@ -276,7 +276,7 @@ class VAViewModel: ViewModel(), EventListener {
             showUUIDChangeDialog(false)
             clearPairedDevice()
             buildAppInfo()
-            config!!.eventBroadcaster.notifyEvent(Event("restartZeroconf", "", ""))
+            config!!.eventBroadcaster.notifyEvent(Event("restart_zeroconf", "", ""))
         }
     }
 }

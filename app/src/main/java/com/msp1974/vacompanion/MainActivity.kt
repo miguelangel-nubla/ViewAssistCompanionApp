@@ -534,14 +534,14 @@ class MainActivity : AppCompatActivity(), EventListener, ComponentCallbacks2 {
         runOnUiThread {
             if (!screenOffInProgress) {
                 when (event.eventName) {
-                    "screenAlwaysOn" -> {
+                    "screen_always_on" -> {
                         val enabled = event.newValue as Boolean
                         //if (enabled) {
                             //screenWake()
                         //}
                         screen.setScreenAlwaysOn(window, enabled)
                     }
-                    "screenAutoBrightness" -> {
+                    "screen_auto_brightness" -> {
                         if (screen.isScreenOn() && !viewModel.vacaState.value.screenBlank) {
                             screen.setScreenAutoBrightness(
                                 window,
@@ -549,12 +549,12 @@ class MainActivity : AppCompatActivity(), EventListener, ComponentCallbacks2 {
                             )
                         }
                     }
-                    "screenBrightness" -> {
+                    "screen_brightness" -> {
                         if (screen.isScreenOn() && !viewModel.vacaState.value.screenBlank) {
                             screen.setScreenBrightness(window, event.newValue as Float)
                         }
                     }
-                    "screenTimeout" -> screen.setScreenTimeout(config.screenTimeout)
+                    "screen_timeout" -> screen.setScreenTimeout(config.screenTimeout)
                     else -> consumed = false
                 }
             }
@@ -565,24 +565,24 @@ class MainActivity : AppCompatActivity(), EventListener, ComponentCallbacks2 {
             consumed = true
 
             when (event.eventName) {
-                "zoomLevel" -> webView.setZoomLevel(event.newValue as Int)
-                "darkMode" -> setDarkMode(event.newValue as Boolean)
+                "zoom_level" -> webView.setZoomLevel(event.newValue as Int)
+                "dark_mode" -> setDarkMode(event.newValue as Boolean)
                 "refresh" -> webView.reload()
-                "clearWebViewStorage" -> clearWebViewStorage()
-                "screenWake" -> screenWake()
-                "screenSleep" -> screenSleep()
-                "screenOn" -> if (event.newValue as Boolean) screenWake() else screenSleep()
-                "screenSaver" -> screenSaver(event.newValue as Boolean)
-                "screenOrientationMode" -> setScreenOrientation(event.newValue as String)
-                "deviceBump" -> if (config.screenOnBump) screenWake()
+                "clear_web_view_storage" -> clearWebViewStorage()
+                "screen_wake" -> screenWake()
+                "screen_sleep" -> screenSleep()
+                "screen_on" -> if (event.newValue as Boolean) screenWake() else screenSleep()
+                "screen_saver" -> screenSaver(event.newValue as Boolean)
+                "screen_orientation_mode" -> setScreenOrientation(event.newValue as String)
+                "device_bump" -> if (config.screenOnBump) screenWake()
                 "proximity" -> if (config.screenOnProximity && event.newValue as Float == 0f) screenWake()
                 "motion" -> onMotion()
-                "showToastMessage" -> Toast.makeText(
+                "show_toast_message" -> Toast.makeText(
                     this,
                     event.newValue as String,
                     Toast.LENGTH_SHORT
                 ).show()
-                "showToastError" -> Toast.makeText(
+                "show_toast_error" -> Toast.makeText(
                     this,
                     "⚠️ ${event.newValue}",
                     Toast.LENGTH_LONG

@@ -67,9 +67,9 @@ class SatelliteActionHandler(
     private fun executeNotify(type: String) {
         val eventType = when (type) {
             "refresh" -> "refresh"
-            "screen-wake" -> "screenWake"
-            "screen-sleep" -> "screenSleep"
-            "wake" -> "wakeWordTrigger"
+            "screen-wake" -> "screen_wake"
+            "screen-sleep" -> "screen_sleep"
+            "wake" -> "wake_word_trigger"
             else -> return
         }
         config.eventBroadcaster.notifyEvent(Event(eventType, "", ""))

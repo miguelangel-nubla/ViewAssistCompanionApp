@@ -12,6 +12,7 @@ import com.google.android.gms.common.util.ClientLibraryUtils.getPackageInfo
 import com.msp1974.vacompanion.audio.VacaAudioFormat
 import com.msp1974.vacompanion.utils.Event
 import com.msp1974.vacompanion.utils.EventNotifier
+import com.msp1974.vacompanion.utils.toSnakeCaseEventName
 import com.msp1974.vacompanion.utils.FirebaseManager
 import com.msp1974.vacompanion.utils.Logger
 import com.msp1974.vacompanion.utils.asIntOrNull
@@ -399,26 +400,17 @@ class APPConfig(val context: Context) {
     }
 
     fun onSharedPreferenceChangedListener(prefs: SharedPreferences, key: String?) {
+        if (key == null) return
         log.d("SharedPreference changed: $key")
-        val event = Event(key.toString(), "", "")
-        firebase.addToCrashLog("${key.toString()} changed")
+        val eventName = key.toSnakeCaseEventName()
+        val event = Event(eventName, "", "")
+        firebase.addToCrashLog("$key ($eventName) changed")
         eventBroadcaster.notifyEvent(event)
     }
 
     fun onValueChangedListener(property: KProperty<*>, oldValue: Any, newValue: Any) {
         if (oldValue != newValue) {
-            val eventName = when (property.name) {
-                "voiceVolume" -> "voice_volume"
-                "mediaVolume" -> "media_volume"
-                "mediaPlayerGain" -> "media_player_gain"
-                "alarmVolume" -> "alarm_volume"
-                "duckingVolume" -> "ducking_volume"
-                "micGain" -> "mic_gain"
-                "micAudioSource" -> "mic_audio_source"
-                "audioInputProcessingMode" -> "audio_input_processing_mode"
-                "doNotDisturb" -> "do_not_disturb"
-                else -> property.name
-            }
+            val eventName = property.name.toSnakeCaseEventName()
             val event = Event(eventName, oldValue, newValue)
             firebase.addToCrashLog("${property.name} ($eventName) changed from $oldValue to $newValue")
             eventBroadcaster.notifyEvent(event)

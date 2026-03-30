@@ -55,7 +55,7 @@ class Sensors(val context: Context, val cbFunc: SensorUpdatesCallback) {
                             if (abs(prevAccel[i]) > 0 && abs(diff) > config.bumpSensitivity * 2) {
                                 Timber.i("Device bump detected -> $i: ${abs(diff)}")
                                 lastBump = System.currentTimeMillis()
-                                config.eventBroadcaster.notifyEvent(Event("deviceBump", "", ""))
+                                config.eventBroadcaster.notifyEvent(Event("device_bump", "", ""))
                             }
                         }
                     }

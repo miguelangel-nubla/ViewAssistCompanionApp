@@ -144,7 +144,7 @@ class DeviceSyncManager(private val context: Context, private val server: Satell
                 Timber.w("Unable to set do not disturb, notification policy access not granted")
                 config.eventBroadcaster.notifyEvent(
                     Event(
-                        "showToastMessage",
+                        "show_toast_message",
                         "",
                         "Unable to set do not disturb. Permission not granted."
                     )

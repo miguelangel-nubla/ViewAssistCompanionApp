@@ -118,12 +118,12 @@ class SatelliteClientHandler(
             override fun onUpdateVolumeDucking(key: String, duck: Boolean) = mediaHandler.updateVolumeDucking(key, duck)
 
             override fun notifyContinueConversation(phrase: String) {
-                config.eventBroadcaster.notifyEvent(Event("continueConversationStart", "", phrase))
+                config.eventBroadcaster.notifyEvent(Event("continue_conversation_start", "", phrase))
                 sessionCoordinator.startContinueConversation()
             }
 
             override fun notifyRecognitionError(code: String, text: String) {
-                config.eventBroadcaster.notifyEvent(Event("recognitionError", text, code))
+                config.eventBroadcaster.notifyEvent(Event("recognition_error", text, code))
             }
 
             override fun setPipelineTimeout(seconds: Int) {
@@ -376,7 +376,7 @@ class SatelliteClientHandler(
         if (enable) {
             mediaHandler.updateVolumeDucking("music", true)
             mediaHandler.alarmPlayer.startAlarm(url)
-            config.eventBroadcaster.notifyEvent(Event("screenWake", "", ""))
+            config.eventBroadcaster.notifyEvent(Event("screen_wake", "", ""))
         } else {
             mediaHandler.alarmPlayer.stopAlarm()
             mediaHandler.updateVolumeDucking("music", false)
